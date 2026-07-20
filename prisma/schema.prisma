@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Campaign {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  emails    Email[]
+}
+
+model Email {
+  id             String    @id @default(cuid())
+  campaignId     String
+  campaign       Campaign  @relation(fields: [campaignId], references: [id])
+  recipientEmail String
+  subject        String
+  body           String
+  status         String    @default("SENT") // SENT, OPENED
+  sentAt         DateTime  @default(now())
+  openedAt       DateTime?
+}
