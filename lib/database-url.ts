@@ -45,22 +45,46 @@ export function getDatabaseUrl(): string {
   return parsed.toString()
 }
 
+function resolveCredentials(parsed: URL): { user: string; password: string } {
+  const user = process.env.DATABASE_USER ?? decodeURIComponent(parsed.username)
+  const password = process.env.DATABASE_PASSWORD ?? decodeURIComponent(parsed.password)
+
+  if (!user) {
+    throw new Error('Database username is missing. Set DATABASE_USER or include it in DATABASE_URL.')
+  }
+
+  if (!password) {
+    throw new Error(
+      'Database password is missing. Set DATABASE_PASSWORD in Vercel (recommended) or include it in DATABASE_URL.'
+    )
+  }
+
+  if (parsed.hostname.includes('pooler') && user === 'postgres') {
+    throw new Error(
+      'Supabase pooler requires username postgres.ctsukdtinxlpzubhnzwm, not postgres. ' +
+        'Copy the full connection string from Supabase → Settings → Database → Transaction pooler.'
+    )
+  }
+
+  return { user, password }
+}
+
 /** Build pg PoolConfig with explicit fields so SSL settings are never ignored. */
 export function getPgPoolConfig(): PoolConfig {
   const parsed = parseDatabaseUrl(getDatabaseUrl())
+  const { user, password } = resolveCredentials(parsed)
 
   const config: PoolConfig = {
     host: parsed.hostname,
     port: parsed.port ? Number(parsed.port) : 5432,
     database: parsed.pathname.replace(/^\//, '') || 'postgres',
-    user: decodeURIComponent(parsed.username),
-    password: decodeURIComponent(parsed.password),
+    user,
+    password,
     max: 1,
     idleTimeoutMillis: 20000,
     connectionTimeoutMillis: 30000,
   }
 
-  // Required for Supabase on Vercel — avoids "self-signed certificate in certificate chain"
   if (!isLocalHost(parsed.hostname)) {
     config.ssl = { rejectUnauthorized: false }
   }
@@ -75,4 +99,27 @@ export function isSupabaseUrl(): boolean {
   } catch {
     return process.env.DATABASE_URL.includes('supabase')
   }
+}
+
+export function getDatabaseErrorHint(message: string): string {
+  const lower = message.toLowerCase()
+
+  if (lower.includes('authentication failed') || lower.includes('password authentication failed')) {
+    return (
+      'Database login failed. In Vercel, set DATABASE_PASSWORD to your Supabase database password ' +
+      '(Supabase → Settings → Database → Database password). ' +
+      'If your password has special characters (@, #, %, etc.), use DATABASE_PASSWORD instead of putting it in DATABASE_URL. ' +
+      'Username must be postgres.ctsukdtinxlpzubhnzwm for the pooler.'
+    )
+  }
+
+  if (lower.includes("can't reach database") || lower.includes('p1001')) {
+    return 'Cannot reach Supabase. Check DATABASE_URL uses the Transaction pooler on port 6543 and the project is not paused.'
+  }
+
+  if (lower.includes('does not exist') || lower.includes('relation')) {
+    return 'Email table missing. Run the SQL in prisma/setup.sql inside Supabase → SQL Editor.'
+  }
+
+  return 'Check DATABASE_URL and DATABASE_PASSWORD in Vercel environment variables.'
 }

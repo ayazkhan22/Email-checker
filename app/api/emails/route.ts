@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getDatabaseErrorHint } from '@/lib/database-url'
 import { requireAuth } from '@/lib/require-auth'
 
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
     const message = error instanceof Error ? error.message : 'Failed to fetch emails'
     return NextResponse.json(
       {
-        error: 'Failed to fetch emails. Check DATABASE_URL is set and migrations have run.',
+        error: getDatabaseErrorHint(message),
         details: message,
       },
       { status: 500 }

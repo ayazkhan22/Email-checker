@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAppUrl } from '@/lib/app-url'
 import { getSmtpConfig } from '@/lib/config'
+import { getDatabaseErrorHint } from '@/lib/database-url'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/require-auth'
 import { getSmtpTransporter } from '@/lib/smtp'
@@ -16,6 +17,7 @@ function classifyError(error: unknown): { type: 'database' | 'smtp' | 'unknown';
     lower.includes("can't reach database") ||
     lower.includes('database server') ||
     lower.includes('database_url') ||
+    lower.includes('authentication failed') ||
     lower.includes('p1001')
   ) {
     return { type: 'database', message }
@@ -100,8 +102,7 @@ export async function POST(request: Request) {
     if (type === 'database') {
       return NextResponse.json(
         {
-          error:
-            'Database connection failed. Update DATABASE_URL in Vercel to the Supabase Transaction pooler URL (port 6543 on *.pooler.supabase.com?pgbouncer=true). Also ensure the Supabase project is not paused and run prisma/setup.sql if the Email table is missing.',
+          error: getDatabaseErrorHint(message),
           details: message,
         },
         { status: 500 }
