@@ -24,3 +24,16 @@ export async function GET() {
     )
   }
 }
+
+export async function DELETE() {
+  const authError = await requireAuth()
+  if (authError) return authError
+
+  try {
+    await prisma.email.deleteMany()
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting all emails:', error)
+    return NextResponse.json({ error: 'Failed to delete emails' }, { status: 500 })
+  }
+}

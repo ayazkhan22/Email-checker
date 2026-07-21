@@ -15,26 +15,21 @@ interface Email {
 }
 
 function StatusBadge({ status, openedAt }: { status: string; openedAt: string | null }) {
-  if (status === 'OPENED') {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <div className="h-2 w-20 rounded-full bg-green-500/80" title="Opened" />
-        <span className="text-xs font-medium text-green-400">Opened</span>
-        {openedAt && (
-          <span className="text-xs text-gray-500">
-            {new Date(openedAt).toLocaleString('en-US', {
-              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
-          </span>
-        )}
-      </div>
-    )
-  }
+  const isOpened = status === 'OPENED'
+  const title = isOpened && openedAt
+    ? `Opened ${new Date(openedAt).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      })}`
+    : isOpened
+      ? 'Opened'
+      : 'Not opened yet'
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="h-2 w-20 rounded-full bg-gray-600" title="Sent" />
-      <span className="text-xs font-medium text-gray-400">Sent</span>
-    </div>
+    <div
+      className={`h-2.5 w-24 rounded-full ${isOpened ? 'bg-green-500' : 'bg-gray-600'}`}
+      title={title}
+      aria-label={title}
+    />
   )
 }
 
@@ -62,6 +57,7 @@ export default function Dashboard() {
   const [formError, setFormError] = useState('')
   const [fetchError, setFetchError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingAll, setDeletingAll] = useState(false)
   const [formSuccess, setFormSuccess] = useState(false)
   const [form, setForm] = useState({
     recipientName: '',
@@ -104,6 +100,25 @@ export default function Dashboard() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setFormError('')
+  }
+
+  const handleDeleteAllEmails = async () => {
+    if (!confirm('Delete all sent emails from the dashboard? This cannot be undone.')) return
+
+    setDeletingAll(true)
+    try {
+      const res = await fetch('/api/emails', { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to delete emails')
+        return
+      }
+      setEmails([])
+    } catch {
+      alert('Network error — could not delete emails')
+    } finally {
+      setDeletingAll(false)
+    }
   }
 
   const handleDeleteEmail = async (id: string) => {
@@ -238,8 +253,28 @@ export default function Dashboard() {
 
       {/* Email Table */}
       <div className="glass-card overflow-hidden fade-in fade-in-delay-1">
-        <div className="px-6 py-4 border-b border-gray-700/50">
-          <h2 className="text-lg font-semibold text-white">Sent Emails</h2>
+        <div className="px-6 py-4 border-b border-gray-700/50 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Sent Emails</h2>
+            <p className="text-xs text-gray-500 mt-1 flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-6 rounded-full bg-gray-600 inline-block" /> Sent
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-6 rounded-full bg-green-500 inline-block" /> Opened
+              </span>
+            </p>
+          </div>
+          {emails.length > 0 && !loading && (
+            <button
+              type="button"
+              onClick={handleDeleteAllEmails}
+              disabled={deletingAll}
+              className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 rounded-lg transition-all duration-200 disabled:opacity-50 shrink-0"
+            >
+              {deletingAll ? 'Deleting all...' : 'Delete all'}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -278,7 +313,7 @@ export default function Dashboard() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="text-sm font-medium text-white">
-                          Sent to: {email.recipientName}
+                          {email.recipientName}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">{email.recipientEmail}</p>
                       </div>
@@ -353,7 +388,7 @@ export default function Dashboard() {
                   onChange={handleChange}
                   required
                   className="input-field w-full px-4 py-2.5 bg-gray-800/60 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm transition-all duration-200"
-                  placeholder="e.g. Aqib"
+                  placeholder="Recipient name"
                 />
               </div>
               <div>
@@ -368,7 +403,7 @@ export default function Dashboard() {
                   onChange={handleChange}
                   required
                   className="input-field w-full px-4 py-2.5 bg-gray-800/60 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm transition-all duration-200"
-                  placeholder="aqib@example.com"
+                  placeholder="recipient@example.com"
                 />
               </div>
             </div>
@@ -403,7 +438,7 @@ export default function Dashboard() {
                 required
                 rows={6}
                 className="input-field w-full px-4 py-2.5 bg-gray-800/60 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm transition-all duration-200 resize-none"
-                placeholder={`Hi Aqib,\n\nWrite your message here...\n\nBest,\nAyaz`}
+                placeholder="Write your message here..."
               />
             </div>
 
