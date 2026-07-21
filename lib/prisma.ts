@@ -8,7 +8,7 @@ const globalForPrisma = globalThis as unknown as {
   pool: Pool | undefined
 }
 
-function createPrismaClient() {
+function createPrismaClient(): PrismaClient {
   const connectionString = getDatabaseUrl()
 
   const pool =
@@ -27,5 +27,17 @@ function createPrismaClient() {
   return new PrismaClient({ adapter })
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-globalForPrisma.prisma = prisma
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient()
+  }
+  return globalForPrisma.prisma
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient()
+    const value = client[prop as keyof PrismaClient]
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+})

@@ -1,5 +1,10 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+
+// prisma generate does not connect to the DB — a placeholder is fine at build time
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://placeholder:placeholder@localhost:5432/placeholder";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,7 +12,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
-    ...(process.env.DIRECT_URL ? { directUrl: env("DIRECT_URL") } : {}),
+    url: databaseUrl,
+    ...(process.env.DIRECT_URL ? { directUrl: process.env.DIRECT_URL } : {}),
   },
 });
