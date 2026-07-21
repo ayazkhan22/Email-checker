@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getAppUrl } from '@/lib/app-url'
+import { buildEmailHtml } from '@/lib/email-html'
 import { getSmtpConfig } from '@/lib/config'
 import { getDatabaseErrorHint } from '@/lib/database-url'
 import { prisma } from '@/lib/prisma'
@@ -74,12 +75,7 @@ export async function POST(request: Request) {
     const trackingUrl = `${appUrl}/api/track?id=${emailRecord.id}`
     const trackingPixel = `<img src="${trackingUrl}" alt="" width="1" height="1" border="0" style="display:none!important;visibility:hidden;width:1px;height:1px;opacity:0;" />`
 
-    const htmlBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        ${emailBody.replace(/\n/g, '<br/>')}
-      </div>
-      ${trackingPixel}
-    `
+    const htmlBody = buildEmailHtml(emailBody, trackingPixel)
 
     const transporter = getSmtpTransporter()
 

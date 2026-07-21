@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 interface Email {
   id: string
@@ -59,6 +59,8 @@ export default function Dashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingAll, setDeletingAll] = useState(false)
   const [formSuccess, setFormSuccess] = useState(false)
+  const [hasSignature, setHasSignature] = useState(false)
+  const composeFormRef = useRef<HTMLFormElement>(null)
   const [form, setForm] = useState({
     recipientName: '',
     recipientEmail: '',
@@ -90,10 +92,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchEmails()
-    // Auto-refresh every 10 seconds to catch new opens
     const interval = setInterval(fetchEmails, 5000)
     return () => clearInterval(interval)
   }, [fetchEmails])
+
+  useEffect(() => {
+    fetch('/api/signature')
+      .then((res) => res.json())
+      .then((data) => setHasSignature(!!data.configured))
+      .catch(() => setHasSignature(false))
+  }, [])
 
 
 
@@ -137,6 +145,15 @@ export default function Dashboard() {
       alert('Network error — could not delete email')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleComposeKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault()
+      if (!formLoading) {
+        composeFormRef.current?.requestSubmit()
+      }
     }
   }
 
@@ -373,7 +390,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          <form onSubmit={handleSendEmail} className="space-y-5">
+          <form ref={composeFormRef} onSubmit={handleSendEmail} className="space-y-5">
             {/* Recipient Name + Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -435,12 +452,31 @@ export default function Dashboard() {
                 name="emailBody"
                 value={form.emailBody}
                 onChange={handleChange}
+                onKeyDown={handleComposeKeyDown}
                 required
                 rows={6}
                 className="input-field w-full px-4 py-2.5 bg-gray-800/60 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm transition-all duration-200 resize-none"
                 placeholder="Write your message here..."
               />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Press <kbd className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">⌘</kbd>
+                {' + '}
+                <kbd className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">Enter</kbd>
+                {' or '}
+                <kbd className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">Ctrl</kbd>
+                {' + '}
+                <kbd className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400">Enter</kbd>
+                {' to send'}
+              </p>
             </div>
+
+            {hasSignature && (
+              <div className="flex items-start gap-2.5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <p className="text-xs text-emerald-300">
+                  Your Gmail signature will be appended automatically to every email.
+                </p>
+              </div>
+            )}
 
             {/* Tracking note */}
             <div className="flex items-start gap-2.5 px-4 py-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
@@ -461,11 +497,15 @@ export default function Dashboard() {
             )}
 
             {/* Submit */}
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs text-gray-500 order-2 sm:order-1">
+                {hasSignature ? 'Signature included · ' : ''}
+                ⌘/Ctrl + Enter to send
+              </p>
               <button
                 type="submit"
                 disabled={formLoading}
-                className="w-full sm:w-auto py-2.5 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                className="order-1 sm:order-2 w-full sm:w-auto py-2.5 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {formLoading ? (
                   <>
