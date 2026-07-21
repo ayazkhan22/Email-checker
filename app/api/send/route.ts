@@ -5,11 +5,13 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { senderName, recipientName, recipientEmail, subject, emailBody } = body
+    const { recipientName, recipientEmail, subject, emailBody } = body
 
-    if (!senderName || !recipientName || !recipientEmail || !subject || !emailBody) {
+    if (!recipientName || !recipientEmail || !subject || !emailBody) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
+
+    const senderName = "Ayaz Khan";
 
     const { SMTP_EMAIL, SMTP_PASSWORD, NEXT_PUBLIC_APP_URL } = process.env
 
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
     })
 
     await transporter.sendMail({
-      from: `"${senderName}" <${SMTP_EMAIL}>`,
+      from: '"Ayaz Khan" <ayazkhan@aizaz.studio>',
       to: recipientEmail,
       subject,
       html: htmlBody,

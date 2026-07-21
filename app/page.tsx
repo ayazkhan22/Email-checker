@@ -105,8 +105,8 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white">Email Dashboard</h1>
           <p className="text-gray-400 mt-1">
             Track opens in real-time ·{' '}
-            <span className="text-gray-500 text-sm">
-              Last refreshed {lastRefresh.toLocaleTimeString()}
+            <span className="text-gray-500 text-sm" suppressHydrationWarning>
+              Last refreshed {lastRefresh.toLocaleTimeString('en-US')}
             </span>
           </p>
         </div>

@@ -11,7 +11,6 @@ export default function ComposePage() {
   const [success, setSuccess] = useState(false)
 
   const [form, setForm] = useState({
-    senderName: 'Ayaz',
     recipientName: '',
     recipientEmail: '',
     subject: '',
@@ -82,22 +81,7 @@ export default function ComposePage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Sender */}
-            <div>
-              <label htmlFor="senderName" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Your Name (Sender)
-              </label>
-              <input
-                id="senderName"
-                name="senderName"
-                type="text"
-                value={form.senderName}
-                onChange={handleChange}
-                required
-                className="input-field w-full px-4 py-2.5 bg-gray-800/60 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm transition-all duration-200"
-                placeholder="e.g. Ayaz"
-              />
-            </div>
+
 
             {/* Recipient Name + Email */}
             <div className="grid grid-cols-2 gap-4">
