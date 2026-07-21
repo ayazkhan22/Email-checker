@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import Link from 'next/link'
 
 interface Email {
   id: string
@@ -18,15 +17,13 @@ interface Email {
 function StatusBadge({ status, openedAt }: { status: string; openedAt: string | null }) {
   if (status === 'OPENED') {
     return (
-      <div className="flex flex-col gap-1">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/30 badge-opened w-fit">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          Opened by: {status === 'OPENED' ? '' : ''}Aqib
-        </span>
+      <div className="flex flex-col gap-1.5">
+        <div className="h-2 w-20 rounded-full bg-green-500/80" title="Opened" />
+        <span className="text-xs font-medium text-green-400">Opened</span>
         {openedAt && (
           <span className="text-xs text-gray-500">
             {new Date(openedAt).toLocaleString('en-US', {
-              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </span>
         )}
@@ -34,10 +31,10 @@ function StatusBadge({ status, openedAt }: { status: string; openedAt: string | 
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-700/50 text-gray-400 border border-gray-600/30 w-fit">
-      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-      Sent
-    </span>
+    <div className="flex flex-col gap-1.5">
+      <div className="h-2 w-20 rounded-full bg-gray-600" title="Sent" />
+      <span className="text-xs font-medium text-gray-400">Sent</span>
+    </div>
   )
 }
 
@@ -64,6 +61,7 @@ export default function Dashboard() {
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
   const [fetchError, setFetchError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState(false)
   const [form, setForm] = useState({
     recipientName: '',
@@ -106,6 +104,25 @@ export default function Dashboard() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setFormError('')
+  }
+
+  const handleDeleteEmail = async (id: string) => {
+    if (!confirm('Delete this email from the dashboard?')) return
+
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/emails/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to delete email')
+        return
+      }
+      setEmails((prev) => prev.filter((e) => e.id !== id))
+    } catch {
+      alert('Network error — could not delete email')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const handleSendEmail = async (e: React.FormEvent) => {
@@ -252,6 +269,7 @@ export default function Dashboard() {
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Subject</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Sent At</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/30">
@@ -277,6 +295,16 @@ export default function Dashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={email.status} openedAt={email.openedAt} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEmail(email.id)}
+                        disabled={deletingId === email.id}
+                        className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 rounded-lg transition-all duration-200 disabled:opacity-50"
+                      >
+                        {deletingId === email.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -386,7 +414,7 @@ export default function Dashboard() {
               </svg>
               <p className="text-xs text-indigo-300">
                 A 1×1 invisible tracking pixel will be automatically added to this email.
-                When the recipient opens it, the dashboard will update to{' '}
+                When the recipient opens it (after ~90 seconds from send), the dashboard will update to{' '}
                 <strong className="text-indigo-200">Opened</strong>.
               </p>
             </div>
