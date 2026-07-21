@@ -58,7 +58,6 @@ function StatCard({ label, value, icon, color }: { label: string; value: number 
 export default function Dashboard() {
   const [emails, setEmails] = useState<Email[]>([])
   const [loading, setLoading] = useState(true)
-  const [seeding, setSeeding] = useState(false)
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
   // Compose Form State
@@ -92,17 +91,7 @@ export default function Dashboard() {
     return () => clearInterval(interval)
   }, [fetchEmails])
 
-  const handleSeed = async () => {
-    setSeeding(true)
-    try {
-      const res = await fetch('/api/seed')
-      if (res.ok) {
-        await fetchEmails()
-      }
-    } finally {
-      setSeeding(false)
-    }
-  }
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -166,13 +155,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleSeed}
-            disabled={seeding}
-            className="px-4 py-2 text-sm text-gray-300 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-all duration-200 disabled:opacity-50"
-          >
-            {seeding ? 'Seeding...' : '🌱 Load Demo Data'}
-          </button>
+
           <button
             onClick={() => document.getElementById('compose-section')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all duration-200 flex items-center gap-2"
@@ -240,7 +223,7 @@ export default function Dashboard() {
             </div>
             <p className="text-gray-400 font-medium">No emails yet</p>
             <p className="text-gray-600 text-sm mt-1">
-              Click &quot;Load Demo Data&quot; above or scroll down to compose your first email
+              Scroll down to compose your first email
             </p>
           </div>
         ) : (
