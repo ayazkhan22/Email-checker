@@ -1,6 +1,7 @@
 import { Pool } from 'pg'
 import { PrismaClient } from '../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { getDatabaseUrl, isSupabaseUrl } from '@/lib/database-url'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -8,17 +9,16 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set')
-  }
+  const connectionString = getDatabaseUrl()
 
   const pool =
     globalForPrisma.pool ??
     new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString,
       max: 1,
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 30000,
+      ...(isSupabaseUrl() ? { ssl: { rejectUnauthorized: false } } : {}),
     })
 
   globalForPrisma.pool = pool

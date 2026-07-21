@@ -7,11 +7,30 @@ import { getSmtpTransporter } from '@/lib/smtp'
 
 export const maxDuration = 30
 
-function getSmtpErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
+function classifyError(error: unknown): { type: 'database' | 'smtp' | 'unknown'; message: string } {
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = message.toLowerCase()
+
+  if (
+    lower.includes('prisma') ||
+    lower.includes("can't reach database") ||
+    lower.includes('database server') ||
+    lower.includes('database_url') ||
+    lower.includes('p1001')
+  ) {
+    return { type: 'database', message }
   }
-  return 'Unknown SMTP error'
+
+  if (
+    lower.includes('smtp') ||
+    lower.includes('eauth') ||
+    lower.includes('invalid login') ||
+    lower.includes('nodemailer')
+  ) {
+    return { type: 'smtp', message }
+  }
+
+  return { type: 'unknown', message }
 }
 
 export async function POST(request: Request) {
@@ -75,14 +94,32 @@ export async function POST(request: Request) {
       await prisma.email.delete({ where: { id: emailRecordId } }).catch(() => {})
     }
 
-    const smtpError = getSmtpErrorMessage(error)
-    console.error('Error sending email:', smtpError, error)
+    const { type, message } = classifyError(error)
+    console.error(`Error sending email (${type}):`, message, error)
+
+    if (type === 'database') {
+      return NextResponse.json(
+        {
+          error:
+            'Database connection failed. Update DATABASE_URL in Vercel to the Supabase Transaction pooler URL (port 6543 on *.pooler.supabase.com?pgbouncer=true). Also ensure the Supabase project is not paused and run prisma/setup.sql if the Email table is missing.',
+          details: message,
+        },
+        { status: 500 }
+      )
+    }
+
+    if (type === 'smtp') {
+      return NextResponse.json(
+        {
+          error: 'SMTP failed. Check SMTP_PASSWORD is the Gmail App Password for ayazkhan@aizaz.studio.',
+          details: message,
+        },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(
-      {
-        error: 'Failed to send email. Check SMTP_PASSWORD is the App Password for ayazkhan@aizaz.studio.',
-        details: smtpError,
-      },
+      { error: 'Failed to send email', details: message },
       { status: 500 }
     )
   }
