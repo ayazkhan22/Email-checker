@@ -26,6 +26,7 @@
 
 # env files — never commit secrets
 .env*
+!.env.example
 
 # vercel
 .vercel

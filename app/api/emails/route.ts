@@ -15,7 +15,10 @@ export async function GET() {
     console.error('Error fetching emails:', error)
     const message = error instanceof Error ? error.message : 'Failed to fetch emails'
     return NextResponse.json(
-      { error: process.env.NODE_ENV === 'development' ? message : 'Failed to fetch emails' },
+      {
+        error: 'Failed to fetch emails. Check DATABASE_URL is set and migrations have run.',
+        details: message,
+      },
       { status: 500 }
     )
   }

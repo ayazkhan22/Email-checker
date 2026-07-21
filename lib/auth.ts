@@ -1,13 +1,15 @@
+import { getAuthConfig } from '@/lib/config'
+
 export const SESSION_COOKIE = 'auth_session'
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
 function getAuthSecret(): string | null {
-  return process.env.AUTH_SECRET ?? null
+  const secret = getAuthConfig().secret
+  return secret || null
 }
 
 export function getAuthCredentials(): { email: string; password: string } | null {
-  const email = process.env.AUTH_EMAIL
-  const password = process.env.AUTH_PASSWORD
+  const { email, password } = getAuthConfig()
   if (!email || !password) return null
   return { email, password }
 }

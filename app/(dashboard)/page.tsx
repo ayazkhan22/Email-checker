@@ -63,6 +63,7 @@ export default function Dashboard() {
   // Compose Form State
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
+  const [fetchError, setFetchError] = useState('')
   const [formSuccess, setFormSuccess] = useState(false)
   const [form, setForm] = useState({
     recipientName: '',
@@ -75,10 +76,19 @@ export default function Dashboard() {
     try {
       const res = await fetch('/api/emails')
       const data = await res.json()
+
+      if (!res.ok) {
+        setFetchError(data.error || 'Failed to fetch emails')
+        if (data.details) setFetchError(`${data.error}: ${data.details}`)
+        return
+      }
+
+      setFetchError('')
       setEmails(data.emails || [])
       setLastRefresh(new Date())
     } catch (err) {
       console.error('Failed to fetch emails', err)
+      setFetchError('Network error — could not load emails')
     } finally {
       setLoading(false)
     }
@@ -114,7 +124,8 @@ export default function Dashboard() {
       const data = await res.json()
 
       if (!res.ok) {
-        setFormError(data.error || 'Failed to send email')
+        const detail = data.details ? ` (${data.details})` : ''
+        setFormError((data.error || 'Failed to send email') + detail)
         return
       }
 
@@ -169,6 +180,12 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Row */}
+      {fetchError && (
+        <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg fade-in">
+          <p className="text-sm text-red-400">{fetchError}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Emails Sent"
