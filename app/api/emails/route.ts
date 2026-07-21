@@ -9,6 +9,10 @@ export async function GET() {
     return NextResponse.json({ emails })
   } catch (error) {
     console.error('Error fetching emails:', error)
-    return NextResponse.json({ error: 'Failed to fetch emails' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to fetch emails'
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === 'development' ? message : 'Failed to fetch emails' },
+      { status: 500 }
+    )
   }
 }

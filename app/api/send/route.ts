@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { getAppUrl } from '@/lib/app-url'
 import { prisma } from '@/lib/prisma'
+
+export const maxDuration = 30
 
 export async function POST(request: Request) {
   try {
@@ -11,13 +14,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    const senderName = "Ayaz Khan";
+    const senderName = process.env.SMTP_FROM_NAME || 'Ayaz Khan'
+    const { SMTP_EMAIL, SMTP_PASSWORD } = process.env
 
-    const { SMTP_EMAIL, SMTP_PASSWORD, NEXT_PUBLIC_APP_URL } = process.env
-
-    if (!SMTP_EMAIL || !SMTP_PASSWORD || !NEXT_PUBLIC_APP_URL) {
+    if (!SMTP_EMAIL || !SMTP_PASSWORD) {
       return NextResponse.json({ error: 'Server SMTP configuration is missing' }, { status: 500 })
     }
+
+    const appUrl = getAppUrl()
 
     // 1. Save email record first to get the tracking ID
     const emailRecord = await prisma.email.create({
@@ -32,7 +36,7 @@ export async function POST(request: Request) {
     })
 
     // 2. Build tracking pixel URL
-    const trackingUrl = `${NEXT_PUBLIC_APP_URL}/api/track?id=${emailRecord.id}`
+    const trackingUrl = `${appUrl}/api/track?id=${emailRecord.id}`
     const trackingPixel = `<img src="${trackingUrl}" alt="" width="1" height="1" style="display:none;border:0;" />`
 
     // 3. Build full HTML email
@@ -53,7 +57,7 @@ export async function POST(request: Request) {
     })
 
     await transporter.sendMail({
-      from: '"Ayaz Khan" <ayazkhan@aizaz.studio>',
+      from: `"${senderName}" <${SMTP_EMAIL}>`,
       to: recipientEmail,
       subject,
       html: htmlBody,
