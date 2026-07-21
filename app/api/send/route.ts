@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import { getAppUrl } from '@/lib/app-url'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/require-auth'
 
 export const maxDuration = 30
 
 export async function POST(request: Request) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const body = await request.json()
     const { recipientName, recipientEmail, subject, emailBody } = body

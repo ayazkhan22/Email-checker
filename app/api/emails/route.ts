@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/require-auth'
 
 export async function GET() {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const emails = await prisma.email.findMany({
       orderBy: { sentAt: 'desc' },

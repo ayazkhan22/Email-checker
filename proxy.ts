@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { isAuthenticatedRequest, SESSION_COOKIE } from '@/lib/auth'
+import { SESSION_COOKIE } from '@/lib/auth'
 
-export async function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (
@@ -14,9 +14,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value
-  const isAuthenticated = await isAuthenticatedRequest(token)
 
-  if (!isAuthenticated) {
+  if (!token) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

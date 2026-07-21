@@ -1,11 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LogoutButton } from "../components/LogoutButton";
+import { isAuthenticated } from "@/lib/require-auth";
 
-export default function DashboardLayout({
+export const dynamic = "force-dynamic";
+
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  if (!(await isAuthenticated())) {
+    redirect("/login");
+  }
+
   return (
     <>
       <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
