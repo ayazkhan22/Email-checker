@@ -91,7 +91,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchEmails()
     // Auto-refresh every 10 seconds to catch new opens
-    const interval = setInterval(fetchEmails, 10000)
+    const interval = setInterval(fetchEmails, 5000)
     return () => clearInterval(interval)
   }, [fetchEmails])
 
@@ -351,7 +351,7 @@ export default function Dashboard() {
 
       {/* Auto-refresh note */}
       <p className="text-center text-xs text-gray-600">
-        Dashboard auto-refreshes every 10 seconds to detect new email opens
+        Dashboard auto-refreshes every 5 seconds · Recipients must allow images to load for open tracking
       </p>
 
       {/* Compose Email Section */}
@@ -448,9 +448,8 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-xs text-indigo-300">
-                A 1×1 invisible tracking pixel will be automatically added to this email.
-                When the recipient opens it (after ~90 seconds from send), the dashboard will update to{' '}
-                <strong className="text-indigo-200">Opened</strong>.
+                When the recipient opens the email and loads images, the status bar turns green.
+                (Gmail/Outlook may require clicking &quot;Display images&quot;.)
               </p>
             </div>
 

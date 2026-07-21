@@ -19,4 +19,5 @@ model Email {
   status         String    @default("SENT")
   sentAt         DateTime  @default(now())
   openedAt       DateTime?
+  pixelLoads     Int       @default(0)
 }

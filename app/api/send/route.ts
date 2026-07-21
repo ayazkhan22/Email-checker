@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     emailRecordId = emailRecord.id
 
     const trackingUrl = `${appUrl}/api/track?id=${emailRecord.id}`
-    const trackingPixel = `<img src="${trackingUrl}" alt="" width="1" height="1" style="display:none;border:0;" />`
+    const trackingPixel = `<img src="${trackingUrl}" alt="" width="1" height="1" border="0" style="display:none!important;visibility:hidden;width:1px;height:1px;opacity:0;" />`
 
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
