@@ -1,0 +1,22 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Email {
+  id             String    @id @default(cuid())
+  senderName     String
+  recipientName  String
+  recipientEmail String
+  subject        String
+  body           String
+  status         String    @default("SENT")
+  sentAt         DateTime  @default(now())
+  openedAt       DateTime?
+}
