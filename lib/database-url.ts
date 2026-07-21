@@ -13,13 +13,11 @@ export function getDatabaseUrl(): string {
   try {
     const parsed = new URL(url)
 
-    if (parsed.hostname.includes('supabase.co')) {
-      // db.xxx.supabase.co:6543 is invalid — 6543 only works on the pooler host
+    if (isSupabaseHost(parsed.hostname)) {
       if (parsed.hostname.startsWith('db.') && parsed.port === '6543') {
         throw new Error(
           'DATABASE_URL uses port 6543 on db.*.supabase.co which is invalid. ' +
-            'In Supabase → Settings → Database → Connection string, copy the ' +
-            'Transaction pooler URI (*.pooler.supabase.com:6543?pgbouncer=true).'
+            'Use the Transaction pooler URI (*.pooler.supabase.com:6543?pgbouncer=true).'
         )
       }
 
@@ -33,9 +31,9 @@ export function getDatabaseUrl(): string {
         parsed.searchParams.set('connect_timeout', '30')
       }
 
-      if (!parsed.searchParams.has('sslmode')) {
-        parsed.searchParams.set('sslmode', 'require')
-      }
+      // SSL is configured on the pg Pool (rejectUnauthorized: false) — not via sslmode in the URL
+      parsed.searchParams.delete('sslmode')
+      parsed.searchParams.delete('sslaccept')
     }
 
     return parsed.toString()
@@ -47,6 +45,20 @@ export function getDatabaseUrl(): string {
   }
 }
 
+function isSupabaseHost(hostname: string): boolean {
+  return hostname.includes('supabase.co') || hostname.includes('supabase.com')
+}
+
 export function isSupabaseUrl(): boolean {
-  return process.env.DATABASE_URL?.includes('supabase.co') ?? false
+  if (!process.env.DATABASE_URL) return false
+  try {
+    const parsed = new URL(process.env.DATABASE_URL.replace(/^postgres:\/\//, 'postgresql://'))
+    return isSupabaseHost(parsed.hostname)
+  } catch {
+    return process.env.DATABASE_URL.includes('supabase')
+  }
+}
+
+export function needsRelaxedSsl(): boolean {
+  return isSupabaseUrl()
 }

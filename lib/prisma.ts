@@ -1,26 +1,33 @@
-import { Pool } from 'pg'
+import { Pool, type PoolConfig } from 'pg'
 import { PrismaClient } from '../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { getDatabaseUrl, isSupabaseUrl } from '@/lib/database-url'
+import { getDatabaseUrl, needsRelaxedSsl } from '@/lib/database-url'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
   pool: Pool | undefined
 }
 
-function createPrismaClient(): PrismaClient {
+function createPoolConfig(): PoolConfig {
   const connectionString = getDatabaseUrl()
 
-  const pool =
-    globalForPrisma.pool ??
-    new Pool({
-      connectionString,
-      max: 1,
-      idleTimeoutMillis: 20000,
-      connectionTimeoutMillis: 30000,
-      ...(isSupabaseUrl() ? { ssl: { rejectUnauthorized: false } } : {}),
-    })
+  const config: PoolConfig = {
+    connectionString,
+    max: 1,
+    idleTimeoutMillis: 20000,
+    connectionTimeoutMillis: 30000,
+  }
 
+  // Supabase on Vercel hits "self-signed certificate in certificate chain" without this
+  if (needsRelaxedSsl()) {
+    config.ssl = { rejectUnauthorized: false }
+  }
+
+  return config
+}
+
+function createPrismaClient(): PrismaClient {
+  const pool = globalForPrisma.pool ?? new Pool(createPoolConfig())
   globalForPrisma.pool = pool
 
   const adapter = new PrismaPg(pool)
