@@ -6,6 +6,13 @@ import { requireAuth } from '@/lib/require-auth'
 
 export const maxDuration = 30
 
+function getSmtpErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'Unknown SMTP error'
+}
+
 export async function POST(request: Request) {
   const authError = await requireAuth()
   if (authError) return authError
@@ -20,14 +27,18 @@ export async function POST(request: Request) {
 
     const senderName = process.env.SMTP_FROM_NAME || 'Ayaz Khan'
     const { SMTP_EMAIL, SMTP_PASSWORD } = process.env
+    const fromEmail = process.env.SMTP_FROM_EMAIL || SMTP_EMAIL
 
     if (!SMTP_EMAIL || !SMTP_PASSWORD) {
       return NextResponse.json({ error: 'Server SMTP configuration is missing' }, { status: 500 })
     }
 
+    if (!fromEmail) {
+      return NextResponse.json({ error: 'SMTP_FROM_EMAIL or SMTP_EMAIL must be set' }, { status: 500 })
+    }
+
     const appUrl = getAppUrl()
 
-    // 1. Save email record first to get the tracking ID
     const emailRecord = await prisma.email.create({
       data: {
         senderName,
@@ -39,11 +50,9 @@ export async function POST(request: Request) {
       },
     })
 
-    // 2. Build tracking pixel URL
     const trackingUrl = `${appUrl}/api/track?id=${emailRecord.id}`
     const trackingPixel = `<img src="${trackingUrl}" alt="" width="1" height="1" style="display:none;border:0;" />`
 
-    // 3. Build full HTML email
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         ${emailBody.replace(/\n/g, '<br/>')}
@@ -51,7 +60,6 @@ export async function POST(request: Request) {
       ${trackingPixel}
     `
 
-    // 4. Send via Gmail SMTP
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -61,7 +69,7 @@ export async function POST(request: Request) {
     })
 
     await transporter.sendMail({
-      from: `"${senderName}" <${SMTP_EMAIL}>`,
+      from: `"${senderName}" <${fromEmail}>`,
       to: recipientEmail,
       subject,
       html: htmlBody,
@@ -69,7 +77,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, email: emailRecord })
   } catch (error) {
-    console.error('Error sending email:', error)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    const smtpError = getSmtpErrorMessage(error)
+    console.error('Error sending email:', smtpError, error)
+
+    return NextResponse.json(
+      {
+        error: 'Failed to send email',
+        details: process.env.NODE_ENV === 'development' ? smtpError : undefined,
+      },
+      { status: 500 }
+    )
   }
 }
